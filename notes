@@ -1,0 +1,34 @@
+player starts in throw mode
+presses space once to set power
+again to set angle
+power will represent peak height and speed
+angle is straightforward
+hit space again to bounce disc
+avoid hitting things
+
+
+throwing phase
+  press space to start
+  disc starts circling
+  player taps space as fast as possible to gain power
+  after one second window, save that power and circle three more times
+  press space at the right angle to get straight throw
+  if you dont tap after three spins it gets thrown with awful accuraccy
+
+control while flying
+  left and right to change spin/reflect
+  up to boost upward at cost of speed
+  down to lose height for speed gain
+  gets a certain amount of energy for these powers
+
+spawn obstacles
+  spawn in groups of 3-5
+    empty area
+    one above
+    one below
+    two above
+    two below
+    one above and below
+  all of different heights
+  configure with JSON
+  and spawn random groups
