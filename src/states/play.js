@@ -1,14 +1,21 @@
 import Level from '../entities/level'
 import MiniMap from '../entities/miniMap'
+import InputManager from '../entities/InputManager'
 
 export default {
   create(game) {
     game.stage.backgroundColor = "#235934"
-    let level = new Level(game, 9)
-    let miniMap = new MiniMap(game, level)
+    this.level = new Level(game, 9)
+    this.miniMap = new MiniMap(game, this.level)
+    this.inputManager = new InputManager(game)
+    this.inputManager.bind("space", () => {
+      this.level.map.next()
+      this.miniMap.update()
+    })
   },
 
   update(game) {
+    this.inputManager.update()
   },
 
   render(game) {

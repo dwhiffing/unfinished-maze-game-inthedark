@@ -1,7 +1,10 @@
 export default {
   // converts swne to nesw and vice versa
   invert(paths) {
-    return paths.map(path => (path+2)%4)
+    if (Array.isArray(paths)) {
+      return paths.map(path => (path+2)%4)
+    }
+    return (paths+2)%4
   },
   toWords(path) {
     if (Array.isArray(path)) {
