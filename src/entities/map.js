@@ -3,10 +3,11 @@ import utils from '../utils'
 import _ from 'lodash'
 // is responsible for generating the map data
 export default class GameMap {
-  constructor(game, size) {
+  constructor(game, size, stepByStep) {
     this.data = []
     this.size = size
     this.game = game
+    this.buildStepByStep = stepByStep
     for (var i = 0; i < this.size*this.size; i++) {
       let x = i % this.size
       let y = Math.floor(i/this.size)
@@ -20,23 +21,49 @@ export default class GameMap {
   generate() {
     let centerTile = this.getCenterTile()
     centerTile.type = 4
-    console.log(this.tileHasBlockedPath(centerTile))
+    if (!this.buildStepByStep) {
+      do {
+        this.placeNextTile()
+      } while (this.getOpenTiles().length > 0)
+      // rejiggering needs work
+      // do {
+      //   this.rejigger()
+      // } while (this.getBlankTiles().length >= 10)
+    }
+  }
+  // check if the map generated has too many blank tiles
+  rejigger() {
+    let blankTilesWithNonBlankNeighbours = this.getBlankTiles().filter(blank => {
+      let nonBlankNeighbours = this.getTileNeighbours(blank).filter(tile => tile && tile.type !== -1)
+      return nonBlankNeighbours.length > 0
+    })
+    let tileToChange = _.sample(blankTilesWithNonBlankNeighbours)
+    tileToChange.type = this.game.rnd.between(1,3)
+    let count = 0
     do {
       this.placeNextTile()
-    } while (this.getOpenTiles().length > 0)
-  }
-  next() {
+      count++
+    } while (count < 10 && this.getOpenTiles().length > 0)
   }
   placeNextTile() {
     let nextTile, openTile
     let count = 0
+    let count2 = 0
+    // get the next tile to place
     do {
-      openTile = _.sample(this.getOpenTiles())
+      let openTiles = this.getOpenTiles()
+      openTile = _.sample(openTiles)
+      if (!openTile) {
+        return
+      }
       let unconnectedPath = this.getUnconnectedPaths(openTile)[0]
       let neighbours = this.getTileNeighbours(openTile)
       nextTile = neighbours[utils.invert(unconnectedPath)]
+      count2++
+      if (count2 > 10) return
     } while (!nextTile)
 
+    // continue placing new tiles until a valid one is found
     do {
       nextTile.type = -1
       let connectingPaths = this.getPathsConnectingToTile(nextTile)
@@ -51,8 +78,9 @@ export default class GameMap {
       if (count > 500) {
         nextTile.type = 0
       }
-    } while (!this.validTilePlacement(nextTile) || !this.tilesConnect(openTile, nextTile))
+    } while (this.tileHasBlockedPath(nextTile) || !this.tilesConnect(openTile, nextTile))
   }
+  // get all the neighbours that connect directly to this tile
   getPathsConnectingToTile(tile) {
     let neighbours = this.getTileNeighbours(tile)
     return neighbours.filter((neighbour, direction) => {
@@ -61,15 +89,13 @@ export default class GameMap {
       return neighbourUnconnectedPaths.some(path => path === direction)
     })
   }
-  validTilePlacement(tile) {
-    return !this.tileHasBlockedPath(tile)
-  }
+  // whether a tile has been placed in a way
+  // where it has a path that can never be connected
   tileHasBlockedPath(tile) {
     let neighbours = this.getTileNeighbours(tile)
     let paths = this.getUnconnectedPaths(tile)
     let blockedPaths = paths.some(path => {
       let tilePathLeadsTo = neighbours[utils.invert(path)]
-      console.log(tilePathLeadsTo)
       return !tilePathLeadsTo || tilePathLeadsTo.type !== -1
     })
     return blockedPaths
@@ -133,6 +159,9 @@ export default class GameMap {
       default:
         return false
     }
+  }
+  getBlankTiles() {
+    return this.data.filter(tile => tile.type === -1)
   }
   // get an array of all tile neighbours always returns 4 indexes:
   // 0: north, 1: east, 2: south, 3: west

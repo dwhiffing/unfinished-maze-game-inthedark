@@ -9,7 +9,11 @@ export default {
     this.miniMap = new MiniMap(game, this.level)
     this.inputManager = new InputManager(game)
     this.inputManager.bind("space", () => {
-      this.level.map.next()
+      this.level.map.placeNextTile()
+      this.miniMap.update()
+    })
+    this.inputManager.bind("r", () => {
+      this.level.map.rejigger()
       this.miniMap.update()
     })
   },

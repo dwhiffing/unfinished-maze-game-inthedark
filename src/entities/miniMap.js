@@ -4,8 +4,8 @@ import Tile from './miniMapTile'
 // in the top right hand corner
 export default class MiniMap {
   constructor(game, level) {
-    let extra = 1
-    this.tileScale = 0.2
+    let extra = 0
+    this.tileScale = 0.06
     this.buffer = this.tileScale * 200 + extra
     this.level = level
     this.game = game
