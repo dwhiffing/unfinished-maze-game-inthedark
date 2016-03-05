@@ -1,7 +1,7 @@
-// 0: south
-// 1: west
-// 2: north
-// 3: east
+// 0: open to the south
+// 1: open to the west
+// 2: open to the north
+// 3: open to the east
 
 export default class Tile {
   constructor(x, y, type=-1, rotation=0) {
@@ -24,8 +24,11 @@ export default class Tile {
           return [this.rotation % 4, (this.rotation + 1) % 4, (this.rotation + 3) % 4]
         case 4:
           return [0, 1, 2, 3]
+        default:
+          return []
       }
     }.bind(this)()
-    return paths.sort()
+    paths = paths.sort()
+    return paths
   }
 }
