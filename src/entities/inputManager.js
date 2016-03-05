@@ -2,8 +2,9 @@ export default class InputManager {
   constructor(game) {
     this.game = game
     this.keys = game.input.keyboard.addKeys({
-      space: Phaser.KeyCode.SPACEBAR,
       r: Phaser.KeyCode.R,
+      z: Phaser.KeyCode.Z,
+      space: Phaser.KeyCode.SPACEBAR,
     })
     this.bindings = {}
   }
@@ -12,7 +13,7 @@ export default class InputManager {
   }
   update() {
     Object.keys(this.bindings).forEach(key => {
-      if (this.keys[key].justDown) {
+      if (this.keys[key] && this.keys[key].justDown) {
         this.bindings[key](this.game)
       }
     })

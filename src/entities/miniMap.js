@@ -23,6 +23,7 @@ export default class MiniMap {
         y: tile.y*this.buffer,
         scale: this.tileScale
       })
+      thing.fixedToCamera = true
       this.group.add(thing)
     })
   }

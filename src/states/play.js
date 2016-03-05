@@ -12,10 +12,25 @@ export default {
       this.level.map.placeNextTile()
       this.miniMap.update()
     })
-    this.inputManager.bind("r", () => {
+    this.inputManager.bind("z", () => {
       this.level.map.rejigger()
       this.miniMap.update()
     })
+
+    game.physics.startSystem(Phaser.Physics.ARCADE)
+    game.world.setBounds(0, 0, this.level.group.width, this.level.group.height)
+
+    game.canvas.addEventListener('mousedown', () => game.input.mouse.requestPointerLock())
+
+    game.camera.x = game.world.width/2-game.canvas.width/2
+    game.camera.y = game.world.height/2-game.canvas.height/2
+
+    game.input.addMoveCallback((pointer, x, y) => {
+      if (game.input.mouse.locked) {
+        game.camera.x += game.input.mouse.event.webkitMovementX
+        game.camera.y += game.input.mouse.event.webkitMovementY
+      }
+    }, this)
   },
 
   update(game) {
