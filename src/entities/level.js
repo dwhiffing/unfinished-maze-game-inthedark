@@ -7,7 +7,7 @@ export default class Level {
   constructor(game, size) {
     let extra = 0
     this.game = game
-    this.tileScale = 0.5
+    this.tileScale = 2
     this.buffer = this.tileScale * 600 + extra
     this.group = game.add.group()
     this.map = new GameMap(game, size)

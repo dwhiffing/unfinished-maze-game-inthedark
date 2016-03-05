@@ -10,12 +10,15 @@ export default class MiniMap {
     this.level = level
     this.game = game
     this.group = game.add.group()
-    this.update()
+    this.drawMap()
+    this.playerMarker = game.add.sprite(0,0,'playerDot')
+    this.group.add(this.playerMarker)
+    this.playerMarker.fixedToCamera = true
 
     this.group.x = game.world.width - this.group.width
   }
-  update() {
-    this.group.removeAll()
+  drawMap() {
+    // this.group.removeAll()
     this.level.map.data.forEach(tile => {
       let thing = new Tile(this.game, {
         ...tile,
@@ -26,5 +29,9 @@ export default class MiniMap {
       thing.fixedToCamera = true
       this.group.add(thing)
     })
+  }
+  update(x,y) {
+    this.playerMarker.cameraOffset.x = x/(this.level.tileScale*50)
+    this.playerMarker.cameraOffset.y = y/(this.level.tileScale*50)
   }
 }
