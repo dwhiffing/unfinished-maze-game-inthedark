@@ -1,4 +1,4 @@
-import Tile from './tile'
+import Tile from './miniMapTile'
 
 // is responsible for drawing a small version of the map
 // in the top right hand corner
@@ -11,16 +11,14 @@ export default class MiniMap {
 
     this.group = game.add.group()
 
-    level.map.data.forEach(row => {
-      row.forEach(tile => {
-        let thing = new Tile(game, {
-          ...tile,
-          x: tile.x*buffer,
-          y: tile.y*buffer,
-          scale: tileScale
-        })
-        this.group.add(thing)
+    level.map.data.forEach(tile => {
+      let thing = new Tile(game, {
+        ...tile,
+        x: tile.x*buffer,
+        y: tile.y*buffer,
+        scale: tileScale
       })
+      this.group.add(thing)
     })
 
     this.group.x = game.world.width - this.group.width
