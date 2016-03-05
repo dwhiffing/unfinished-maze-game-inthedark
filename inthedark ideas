@@ -1,0 +1,34 @@
+In the dark
+
+roguelike
+
+5 levels
+  procedurally generated caves
+  some areas have tight chasms
+  other areas are wide open
+
+enemy types
+  rats spiders - standard charges at player
+  wall eggs- glow in the dark, if they get too big, they hatch, use flash light to keep them frow growing
+  light haters- if you get the light on them, they charge at you, otherwise they avoid you
+  doppelgangers - stays behind player unles they back into a wall, subtle hints that its behind you
+  blenders- blends into bg, if you get too close, they take you out, they are more obvious if the light is directly on them
+  swarmers- when they see your light, they all swarm towards you, you have to bathe in darkness for them to disperse
+
+
+
+player finds flashlight and batteries and flares
+  lamp gives them a small aura
+
+uses flash light to push back enemies
+
+eggs hatch into different enemy types based on how you interact with them
+
+player has no life, but drops equipment when attacked
+  first flares, then the flashlight, then the lamp
+
+once you have no equipment, you have only a bit of time to find it before you die
+
+
+level generation
+  like carcassone, grab random tiles and place them to make levels 

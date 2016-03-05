@@ -1,34 +1,77 @@
-player starts in throw mode
-presses space once to set power
-again to set angle
-power will represent peak height and speed
-angle is straightforward
-hit space again to bounce disc
-avoid hitting things
+Map generation rules
+  start with a 4 way in the center
+  4 major paths which split at a random point
+    eg path may split on first tile or 2nd, or 8th,
+    each path sould be about 9 tiles long
+
+    tiles:
+
+      each of these types has several shape variations, but their boundries are the exact same
+    most tiles should be
+    most tiles should be 1s and 2s, but a predetermined split will be placed in each path
+    have a target length for each path and when target length is met, end path
 
 
-throwing phase
-  press space to start
-  disc starts circling
-  player taps space as fast as possible to gain power
-  after one second window, save that power and circle three more times
-  press space at the right angle to get straight throw
-  if you dont tap after three spins it gets thrown with awful accuraccy
+  process:
 
-control while flying
-  left and right to change spin/reflect
-  up to boost upward at cost of speed
-  down to lose height for speed gain
-  gets a certain amount of energy for these powers
+    place 4 in center
+    start with north, if there is no tile, place the next tile
+    get next tile
 
-spawn obstacles
-  spawn in groups of 3-5
-    empty area
-    one above
-    one below
-    two above
-    two below
-    one above and below
-  all of different heights
-  configure with JSON
-  and spawn random groups
+
+  things
+    grid: 2d array
+      size:
+      center:
+      get tile at
+      get neighbour of
+      get neighbours of
+      get center tile
+
+    tile: individual tile
+      type:
+        each tile has a type, which represents how many exits it has
+        null - empty space
+        0 - one exit
+        1 - two exits, one north, one east
+        2 - two exits one north one south
+        3 - 3 exits, no exit south
+        4 - 4 exits
+      rotation: the orientation of the tile
+        0: always connects south
+        1: always conencts west
+        2: always connects east
+        3: always connects north
+
+      shape: what variation of the tile shape
+      isBlocked:
+        whether a is placed validly, ie all its paths are either connected or connected to blank spaces
+
+    generator: manages placing of tiles
+
+place tile of type 4 in center
+do
+  get first open path
+  do
+
+    get first open path on tile
+    get new tile
+
+    if target length is met
+      get tile of type 0
+    if at split point
+      get tile of type 3
+    else
+      get tile of type 1
+
+    do
+
+      get direction of open path and rotate tile to connect to that
+
+    while tile not blocked
+
+    commit tile placement
+
+  while path not complete
+
+while there are open roads remaining
