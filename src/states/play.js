@@ -2,20 +2,11 @@ import Level from '../entities/level'
 import MiniMap from '../entities/miniMap'
 import InputManager from '../entities/InputManager'
 
+let shadowTexture, line
+
 export default {
   create(game) {
-    game.stage.backgroundColor = "#235934"
     this.level = new Level(game, 9)
-    this.miniMap = new MiniMap(game, this.level)
-    this.inputManager = new InputManager(game)
-    this.inputManager.bind("space", () => {
-      this.level.map.placeNextTile()
-      this.miniMap.update()
-    })
-    this.inputManager.bind("z", () => {
-      this.level.map.rejigger()
-      this.miniMap.update()
-    })
 
     game.physics.startSystem(Phaser.Physics.ARCADE)
     game.world.setBounds(0, 0, this.level.group.width, this.level.group.height)
@@ -31,10 +22,63 @@ export default {
         game.camera.y += game.input.mouse.event.webkitMovementY
       }
     }, this)
+
+    let lineGroup = game.add.group()
+    line = game.add.sprite(game.width/2, game.height/2, 'cross')
+    // game.physics.enable(line)
+    line.anchor.setTo(0.5, 0.5)
+    line.fixedToCamera = true
+    lineGroup.add(line)
+
+    game.lightRadius = 100
+    shadowTexture = game.add.bitmapData(game.world.width, game.world.height);
+    let lightSprite = game.add.image(0, 0, shadowTexture);
+    lightSprite.blendMode = Phaser.blendModes.MULTIPLY;
+
+    let shadowTexture2 = game.add.bitmapData(game.world.width, game.world.height);
+    let lightSprite2 = game.add.image(0, 0, shadowTexture);
+    lightSprite2.blendMode = Phaser.blendModes.MULTIPLY;
+    // 
+    // let shadowTexture3 = game.add.bitmapData(game.world.width, game.world.height);
+    // let lightSprite3 = game.add.image(0, 0, shadowTexture);
+    // lightSprite3.blendMode = Phaser.blendModes.MULTIPLY;
+
+    game.lightRadius = 200
+
+    this.miniMap = new MiniMap(game, this.level)
+    // this.inputManager = new InputManager(game)
+    // this.inputManager.bind("space", () => {
+    //   this.level.map.placeNextTile()
+    //   this.miniMap.update()
+    // })
+    // this.inputManager.bind("z", () => {
+    //   this.level.map.rejigger()
+    //   this.miniMap.update()
+    // })
   },
 
   update(game) {
-    this.inputManager.update()
+    // this.inputManager.update()
+
+    var radius = game.lightRadius+game.rnd.integerInRange(0,10)
+    shadowTexture.context.fillStyle = 'rgb(100, 100, 100)';
+    shadowTexture.context.fillRect(0, 0, game.world.width, game.world.height);
+
+    var gradient = shadowTexture.context.createRadialGradient(
+        line.x, line.y, game.lightRadius * 0.4,
+        line.x, line.y, radius);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+    // Draw circle of light
+    shadowTexture.context.beginPath();
+    shadowTexture.context.fillStyle = gradient;
+    var size = this.game.rnd.realInRange(0.9, 1.0);
+    shadowTexture.context.arc(line.x, line.y, radius, 0, Math.PI*2);
+    shadowTexture.context.fill();
+
+    // This just tells the engine it should update the texture cache
+    shadowTexture.dirty = true;
   },
 
   render(game) {
