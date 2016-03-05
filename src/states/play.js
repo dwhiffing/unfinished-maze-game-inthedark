@@ -19,7 +19,7 @@ export default {
     this.lightManager = new LightManager(game, 100)
     game.world.bringToTop(this.miniMap.group)
 
-    this.inputManager = new InputManager(game)
+    // this.inputManager = new InputManager(game)
     // this.inputManager.bind("space", () => {
     //   this.level.map.placeNextTile()
     //   this.miniMap.update()
@@ -31,7 +31,7 @@ export default {
   },
 
   update(game) {
-    this.inputManager.update()
+    // this.inputManager.update()
     this.miniMap.update(this.game.camera.x, this.game.camera.y)
     this.lightManager.update()
     this.player.update()

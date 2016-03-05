@@ -2,10 +2,6 @@ export default class InputManager {
   constructor(game) {
     this.game = game
     this.keys = game.input.keyboard.addKeys({
-      w: Phaser.KeyCode.W,
-      a: Phaser.KeyCode.A,
-      s: Phaser.KeyCode.S,
-      d: Phaser.KeyCode.D,
       space: Phaser.KeyCode.SPACEBAR,
     })
     this.bindings = {}
