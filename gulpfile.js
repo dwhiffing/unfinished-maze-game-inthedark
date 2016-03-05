@@ -8,7 +8,7 @@ var watchify = require('watchify');
 var buffer = require('vinyl-buffer');
 
 var bundler = watchify(browserify('./src/index.js', watchify.args));
-bundler.transform('babelify');
+bundler.transform("babelify", {presets: ["es2015", "react"], plugins: ['transform-object-rest-spread']})
 
 gulp.task('js', bundle); // so you can run `gulp js` to build the file
 bundler.on('update', bundle); // on any dep update, runs the bundler
