@@ -1,5 +1,6 @@
 import Level from '../entities/level'
 import MiniMap from '../entities/miniMap'
+import LightManager from '../entities/lightManager'
 import InputManager from '../entities/InputManager'
 
 let shadowTexture, line
@@ -31,21 +32,7 @@ export default {
     line.fixedToCamera = true
     lineGroup.add(line)
 
-    game.lightRadius = 100
-
-    shadowTexture = game.add.bitmapData(game.canvas.width, game.canvas.height);
-    shadowTexture.fixedToCamera = true
-
-    let lightSprite = game.add.image(0, 0, shadowTexture);
-    lightSprite.blendMode = Phaser.blendModes.MULTIPLY;
-    lightSprite.fixedToCamera = true
-
-    //
-    // let shadowTexture3 = game.add.bitmapData(game.canvas.width, game.canvas.height);
-    // let lightSprite3 = game.add.image(0, 0, shadowTexture);
-    // lightSprite3.blendMode = Phaser.blendModes.MULTIPLY;
-
-    game.lightRadius = 150
+    this.lightManager = new LightManager(game, 100)
 
     game.world.bringToTop(this.miniMap.group)
 
@@ -62,28 +49,8 @@ export default {
 
   update(game) {
     // this.inputManager.update()
-
-    var radius = game.lightRadius+game.rnd.integerInRange(0,20)
-    this.miniMap.update(game.camera.x, game.camera.y)
-
-    // clear out the previous gradient and make a new one
-    shadowTexture.context.fillStyle = 'rgb(30, 30, 30)';
-    shadowTexture.context.fillRect(0, 0, game.canvas.width, game.canvas.height);
-    var gradient = shadowTexture.context.createRadialGradient(
-        game.width/2,game.height/2, game.lightRadius * 0.2,
-        game.width/2,game.height/2, radius);
-    gradient.addColorStop(0, 'rgba(240, 235, 220, 1.0)');
-    gradient.addColorStop(1, 'rgba(240, 235, 220, 0.0)');
-
-    // Draw circle of light
-    shadowTexture.context.beginPath();
-    shadowTexture.context.fillStyle = gradient;
-    var size = this.game.rnd.realInRange(0.1, 1.0);
-    shadowTexture.context.arc(game.width/2,game.height/2, radius, 0, Math.PI*2);
-    shadowTexture.context.fill();
-
-    // This just tells the engine it should update the texture cache
-    shadowTexture.dirty = true;
+    this.miniMap.update(this.game.camera.x, this.game.camera.y)
+    this.lightManager.update()
   },
 
   render(game) {
