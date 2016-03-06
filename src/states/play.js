@@ -15,14 +15,14 @@ export default {
     game.camera.x = game.world.width/2-game.canvas.width/2
     game.camera.y = game.world.height/2-game.canvas.height/2
 
-    this.player = new Player(game)
-    this.lightManager = new LightManager(game, 100)
+    game.player = new Player(game)
+    this.lightManager = new LightManager(game)
     game.world.bringToTop(this.miniMap.group)
 
     // this.inputManager = new InputManager(game)
     // this.inputManager.bind("space", () => {
     //   this.level.map.placeNextTile()
-    //   this.miniMap.update()
+    //   this.miniMap.drawMap()
     // })
     // this.inputManager.bind("z", () => {
     //   this.level.map.rejigger()
@@ -33,8 +33,8 @@ export default {
   update(game) {
     // this.inputManager.update()
     this.miniMap.update(this.game.camera.x, this.game.camera.y)
-    this.lightManager.update()
-    this.player.update()
+    this.lightManager.update(game.input.x, game.input.y)
+    game.player.update()
   },
 
   render(game) {
