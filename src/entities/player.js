@@ -32,5 +32,7 @@ export default class Player {
   move(x, y) {
     this.game.camera.x += x * this.speed
     this.game.camera.y += y * this.speed
+    this.game.rockTexture.tilePosition.x -= x * this.speed
+    this.game.rockTexture.tilePosition.y -= y * this.speed
   }
 }
