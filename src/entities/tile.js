@@ -28,7 +28,25 @@ export default class Tile {
           return []
       }
     }.bind(this)()
+
     paths = paths.sort()
+
     return paths
+  }
+  render(game, {x, y, scale, type=0, rotation=0, shape=0, mapTile=false}) {
+    const sprite = game.make.sprite(x, y, mapTile ? 'tiles4' : 'tiles3')
+    const simple = true
+    const frameExtra = simple && mapTile ? null : 6 * shape
+
+    sprite.anchor.setTo(0.5)
+    sprite.scale.setTo(scale)
+
+    sprite.frame = (type+1) + frameExtra
+    sprite.angle = rotation * 90
+
+    sprite.x += sprite.width/2
+    sprite.y += sprite.height/2
+
+    return sprite
   }
 }
