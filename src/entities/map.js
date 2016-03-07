@@ -21,6 +21,8 @@ export default class GameMap {
   generate() {
     let centerTile = this.getCenterTile()
     centerTile.type = 4
+    centerTile.rotation = this.game.rnd.between(0, 3)
+    centerTile.shape = 1
     if (!this.buildStepByStep) {
       do {
         this.placeNextTile()
@@ -72,6 +74,7 @@ export default class GameMap {
       } else {
         nextTile.type = this.game.rnd.between(1,2)
       }
+      nextTile.shape = this.game.rnd.between(0,1) + 1
       nextTile.rotation = this.game.rnd.between(0,3)
       count++
       // this should check if the tile has no blank neighbours instead

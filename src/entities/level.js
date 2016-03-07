@@ -5,10 +5,9 @@ import Tile from './mapTile'
 // that the player explores as well as mananging the boundries for that map
 export default class Level {
   constructor(game, size) {
-    let extra = 0
     this.game = game
     this.tileScale = 1.5
-    this.buffer = this.tileScale * 600 + extra
+    this.buffer = this.tileScale * 1000
     this.group = game.add.group()
     this.map = new GameMap(game, size)
     this.map.data.forEach(tile => {
