@@ -75,3 +75,8 @@ do
   while path not complete
 
 while there are open roads remaining
+
+
+
+
+should use p2 physics for generating the bodies for cave walls

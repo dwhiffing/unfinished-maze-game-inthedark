@@ -7,13 +7,18 @@ import InputManager from '../entities/InputManager'
 export default {
   create(game) {
     game.physics.startSystem(Phaser.Physics.ARCADE)
-
+    game.stage.backgroundColor="#4488AA"
+    let rock = game.add.tileSprite(0,0,0,0, 'rock')
     this.level = new Level(game, 9)
     this.miniMap = new MiniMap(game, this.level)
 
     game.world.setBounds(0, 0, this.level.group.width, this.level.group.height)
     game.camera.x = game.world.width/2-game.canvas.width/2
     game.camera.y = game.world.height/2-game.canvas.height/2
+    rock.width = game.world.width
+    rock.height = game.world.height
+
+
 
     game.player = new Player(game)
     this.lightManager = new LightManager(game)
