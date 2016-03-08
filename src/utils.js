@@ -12,6 +12,12 @@ export default {
     }
     return _directionNumToWord(path)
   },
+  getPositionOnCamera(game, target) {
+    return {
+      x: (target.x - game.camera.position.x)+400,
+      y: (target.y - game.camera.position.y)+225
+    }
+  },
   _directionNumToWord(path) {
     switch (path) {
       case 0:

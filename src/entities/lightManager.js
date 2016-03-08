@@ -1,5 +1,7 @@
+import utils from '../utils'
+
 export default class LightManager {
-  constructor(game, lightRadius=120) {
+  constructor(game, lightRadius=140) {
     this.game = game
     this.lightRadius = lightRadius
 
@@ -9,23 +11,60 @@ export default class LightManager {
     this.lightSprite = game.add.image(0, 0, this.shadowTexture)
     this.lightSprite.blendMode = Phaser.blendModes.MULTIPLY
     this.lightSprite.fixedToCamera = true
+
+    this.rayBitmap = this.game.add.bitmapData(this.game.width, this.game.height)
+    this.rayBitmapImage = this.game.add.image(0, 0, this.rayBitmap)
+    this.rayBitmapImage.visible = false
+    this.rayBitmapImage.fixedToCamera = true
+
+    this.walls = this.game.add.group()
+    let x = this.game.world.width/2
+    let y = this.game.world.height/2
+    this.game.add.image(x, y, 'block', 0, this.walls).scale.setTo(3, 3)
+
+    this.stageCorners = [
+      new Phaser.Point(0, 0),
+      new Phaser.Point(this.game.width, 0),
+      new Phaser.Point(this.game.width, this.game.height),
+      new Phaser.Point(0, this.game.height)
+    ]
   }
   update(mouseX, mouseY) {
-    // this.shadowTexture.context.fillStyle = 'rgba(13, 13, 13, 0.02)'
     this.shadowTexture.context.fillStyle = 'rgba(13, 13, 13, 1)'
     this.shadowTexture.context.fillRect(0, 0, this.game.width, this.game.height)
 
+    this.target = utils.getPositionOnCamera(this.game, this.game.player.sprite)
     this.center = [
-      (this.game.player.sprite.x - this.game.camera.position.x)+400,
-      (this.game.player.sprite.y - this.game.camera.position.y)+220
+      this.target.x,
+      this.target.y,
     ]
 
-    this.drawAura()
-    this.drawFlashlight(mouseX, mouseY)
+    const points = this.rayCast()
+
+    this.drawAura(points)
+    // this.drawFlashlight(mouseX, mouseY, points)
 
     this.shadowTexture.dirty = true
+
+    if (this.rayBitmapImage.visible) {
+      this.drawRayCast(points)
+      this.rayBitmap.dirty = true
+    }
   }
-  drawAura() {
+  drawRayCast(points) {
+    this.rayBitmap.context.clearRect(0, 0, this.game.width, this.game.height)
+    this.rayBitmap.context.beginPath()
+    this.rayBitmap.context.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+    this.rayBitmap.context.fillStyle = 'rgba(255, 255, 255, 0.3)'
+    this.rayBitmap.context.moveTo(points[0].x, points[0].y)
+    for(var k = 0; k < points.length; k++) {
+      this.rayBitmap.context.moveTo(this.target.x, this.target.y)
+      this.rayBitmap.context.lineTo(points[k].x, points[k].y)
+      this.rayBitmap.context.fillRect(points[k].x-2, points[k].y-2, 4, 4)
+    }
+    this.rayBitmap.context.stroke()
+  }
+  drawAura(points) {
     const ctx = this.shadowTexture.context
     const { width, height, player, physics } = this.game
     const flicker = this.game.rnd.integerInRange(0, this.lightRadius / 10)
@@ -38,11 +77,14 @@ export default class LightManager {
 
     ctx.beginPath()
     ctx.fillStyle = gradient
-    ctx.arc(...this.center, outerRadius, 0, Math.PI*2)
+    ctx.moveTo(points[0].x, points[0].y)
+    for(var j = 0; j < points.length; j++) {
+      ctx.lineTo(points[j].x, points[j].y)
+    }
     ctx.closePath()
     ctx.fill()
   }
-  drawFlashlight(mouseX, mouseY) {
+  drawFlashlight(mouseX, mouseY, points) {
     const ctx = this.shadowTexture.context
     const { width, height, player, physics } = this.game
     const innerRadius = this.lightRadius * 0.5
@@ -54,16 +96,141 @@ export default class LightManager {
 
     ctx.beginPath()
     ctx.fillStyle = gradient
-    // const dist = physics.arcade.distanceToPointer(player.sprite)
+
     const angle = physics.arcade.angleToPointer(player.sprite) - 0.5
     const angle2 = physics.arcade.angleToPointer(player.sprite) + 0.5
 
-    ctx.moveTo(...this.center)
-    ctx.lineTo(mouseX + Math.cos(angle) * 600, mouseY + Math.sin(angle) * 600 )
-    ctx.lineTo(mouseX + Math.cos(angle2) * 600, mouseY + Math.sin(angle2) * 600 )
+    // ctx.moveTo(...this.center)
+    // ctx.lineTo(mouseX + Math.cos(angle) * 600, mouseY + Math.sin(angle) * 600 )
+    // ctx.lineTo(mouseX + Math.cos(angle2) * 600, mouseY + Math.sin(angle2) * 600 )
+
+    ctx.moveTo(points[0].x, points[0].y)
+    for(var j = 0; j < points.length; j++) {
+      ctx.lineTo(points[j].x, points[j].y)
+    }
 
     ctx.closePath()
     ctx.fill()
+  }
+  getCorners() {
+    // find all the corners visible on the screen and get them into a single array of x,y point pairs
+    // right now its just the one block
+    let corners = []
+
+    this.walls.forEach((wall) => {
+      let wallPos = utils.getPositionOnCamera(this.game, wall)
+      corners = corners.concat([
+        new Phaser.Point(wallPos.x+0.1, wallPos.y+0.1),
+        new Phaser.Point(wallPos.x-0.1, wallPos.y-0.1),
+
+        new Phaser.Point(wallPos.x-0.1 + wall.width, wallPos.y+0.1),
+        new Phaser.Point(wallPos.x+0.1 + wall.width, wallPos.y-0.1),
+
+        new Phaser.Point(wallPos.x-0.1 + wall.width, wallPos.y-0.1 + wall.height),
+        new Phaser.Point(wallPos.x+0.1 + wall.width, wallPos.y+0.1 + wall.height),
+
+        new Phaser.Point(wallPos.x+0.1, wallPos.y-0.1 + wall.height),
+        new Phaser.Point(wallPos.x-0.1, wallPos.y+0.1 + wall.height)
+      ])
+    })
+    return corners
+  }
+  rayCast() {
+    let t = this.target
+    let w = this.game.width
+    let h = this.game.height
+    let points = []
+
+    this.getCorners().forEach(c => {
+      let slope = (c.y - t.y) / (c.x - t.x)
+      let b = t.y - slope * t.x
+      let end = null
+
+      if (c.x === t.x) {
+        let point = c.y <= t.y ? [t.x, 0] : [t.x, h]
+        end = new Phaser.Point(point)
+      } else if (c.y === t.y) {
+        let point = c.y <= t.x ? [0, t.y] : [w, t.y]
+        end = new Phaser.Point(point)
+      } else {
+        let left = new Phaser.Point(0, b)
+        let right = new Phaser.Point(w, slope * w + b)
+        let top = new Phaser.Point(-b / slope, 0)
+        let bottom = new Phaser.Point((h - b) / slope, h)
+
+        let below = top.x >= 0
+        let above = bottom.x >= 0
+        let toLeft = bottom.x <= w
+        let toRight = bottom.x <= w
+
+        if (c.y <= t.y && c.x >= t.x) {
+          end = below && toLeft ? top : right
+        } else if (c.y <= t.y && c.x <= t.x) {
+          end = below && toLeft ? top : left
+        } else if (c.y >= t.y && c.x >= t.x) {
+          end = above && toRight ? bottom : right
+        } else if (c.y >= t.y && c.x <= t.x) {
+          end = above && toRight ? bottom : left
+        }
+      }
+
+      let ray = new Phaser.Line(t.x, t.y, end.x, end.y)
+      let intersect = this.getWallIntersection(ray)
+      points.push(intersect ? intersect : ray.end)
+    })
+
+    this.stageCorners.forEach(corner => {
+      let ray = new Phaser.Line(t.x, t.y, corner.x, corner.y)
+      let intersect = this.getWallIntersection(ray)
+      if (!intersect) points.push(corner)
+    })
+
+    return points.sort(function(a, b) {
+      if (a.x - t.x >= 0 && b.x - t.x < 0)
+        return 1
+      if (a.x - t.x < 0 && b.x - t.x >= 0)
+        return -1
+      if (a.x - t.x === 0 && b.x - t.x === 0) {
+        if (a.y - t.y >= 0 || b.y - t.y >= 0)
+          return 1
+        return -1
+      }
+
+      let det = (a.x - t.x) * (b.y - t.y) - (b.x - t.x) * (a.y - t.y)
+      if (det < 0) return 1
+      if (det > 0) return -1
+
+      let d1 = (a.x - t.x) * (a.x - t.x) + (a.y - t.y) * (a.y - t.y)
+      let d2 = (b.x - t.x) * (b.x - t.x) + (b.y - t.y) * (b.y - t.y)
+      return 1
+    })
+  }
+  getWallIntersection(ray) {
+    let distanceToWall = Number.POSITIVE_INFINITY
+    let closestIntersection = null
+
+    this.walls.forEach(wall => {
+      let wallPos = utils.getPositionOnCamera(this.game, wall)
+      let lines = [
+        new Phaser.Line(wallPos.x, wallPos.y, wallPos.x + wall.width, wallPos.y),
+        new Phaser.Line(wallPos.x, wallPos.y, wallPos.x, wallPos.y + wall.height),
+        new Phaser.Line(wallPos.x + wall.width, wallPos.y, wallPos.x + wall.width, wallPos.y + wall.height),
+        new Phaser.Line(wallPos.x, wallPos.y + wall.height, wallPos.x + wall.width, wallPos.y + wall.height)
+      ]
+
+      lines.forEach(line => {
+        let intersect = Phaser.Line.intersects(ray, line)
+        if (intersect) {
+          let distance = this.game.math.distance(ray.start.x, ray.start.y, intersect.x, intersect.y)
+          if (distance < distanceToWall) {
+            distanceToWall = distance
+            closestIntersection = intersect
+          }
+        }
+      })
+    })
+
+    return closestIntersection
   }
   getLight(level) {
     return `${24 * level}, ${23 * level}, ${22 * level}`
