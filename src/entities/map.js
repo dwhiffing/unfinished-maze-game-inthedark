@@ -7,7 +7,7 @@ export default class Map {
     this.game = game
     this.group = game.add.group()
 
-    this.tileScale = 1.5
+    this.tileScale = 1.2
     this.buffer = this.tileScale * 1000
 
     this.map = new MapGenerator(game, size)

@@ -5,10 +5,11 @@ export default class Player {
     this.group = game.add.group()
     this.speed = 3
 
-    this.sprite = game.add.sprite(game.width/2, game.height/2, 'cross')
+    this.sprite = game.add.sprite(game.world.width/2, game.world.height/2, 'cross')
     this.sprite.anchor.setTo(0.5, 0.5)
-    this.sprite.fixedToCamera = true
     this.group.add(this.sprite)
+
+    game.physics.enable(this.sprite)
 
     this.keys = game.input.keyboard.addKeys({
       w: Phaser.KeyCode.W,
@@ -35,10 +36,17 @@ export default class Player {
     this.move(x, y)
   }
   move(x, y) {
-    this.game.camera.x += x * this.speed
-    this.game.camera.y += y * this.speed
+    this.sprite.x += x * this.speed
+    this.sprite.y += y * this.speed
 
-    this.game.rockTexture.tilePosition.x -= x * this.speed
-    this.game.rockTexture.tilePosition.y -= y * this.speed
+    if (this.game.camera.position.x !== this.lastX) {
+      this.game.rockTexture.tilePosition.x -= x * this.speed
+    }
+    if (this.game.camera.position.y !== this.lastY) {
+      this.game.rockTexture.tilePosition.y -= y * this.speed
+    }
+
+    this.lastX = this.game.camera.position.x
+    this.lastY = this.game.camera.position.y
   }
 }

@@ -9,7 +9,6 @@ export default {
     // game.stage.backgroundColor="#4488AA"
 
     game.physics.startSystem(Phaser.Physics.ARCADE)
-    game.center = [game.width/2, game.height/2]
 
     game.rockTexture = game.add.tileSprite(0,0,game.canvas.width,game.canvas.height, 'rock')
     game.rockTexture.fixedToCamera = true
@@ -19,10 +18,9 @@ export default {
 
     game.world.setBounds(0, 0, game.map.group.width, game.map.group.height)
 
-    game.camera.x = game.world.width/2-game.canvas.width/2
-    game.camera.y = game.world.height/2-game.canvas.height/2
-
     game.player = new Player(game)
+
+    game.camera.follow(game.player.sprite, 3)
 
     game.lightManager = new LightManager(game)
 
@@ -41,6 +39,8 @@ export default {
 
   update(game) {
     // game.inputManager.update()
+    game.center = [game.player.sprite.x - game.camera.position.x, game.player.sprite.y - game.camera.position.y]
+
     game.miniMap.update(this.game.camera.x, this.game.camera.y)
     game.lightManager.update(game.input.x, game.input.y)
     game.player.update()

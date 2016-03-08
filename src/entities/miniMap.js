@@ -1,5 +1,3 @@
-import MapTile from './mapTile'
-
 export default class MiniMap {
   constructor(game, map) {
     this.map = map
@@ -20,15 +18,15 @@ export default class MiniMap {
   drawMap() {
     // this.group.destroyAll()
     this.map.data.forEach(tile => {
-      let mapTile = new MapTile(this.game, {
+      let sprite = tile.render(this.game, {
         ...tile,
         x: tile.x * this.buffer,
         y: tile.y * this.buffer,
         scale: this.tileScale,
         mapTile: true,
       })
-      mapTile.fixedToCamera = true
-      this.group.add(mapTile)
+      sprite.fixedToCamera = true
+      this.group.add(sprite)
     })
   }
   update(x, y) {
