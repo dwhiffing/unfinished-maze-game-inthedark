@@ -8,7 +8,7 @@ export default {
   create(game) {
     // game.stage.backgroundColor="#4488AA"
 
-    game.physics.startSystem(Phaser.Physics.ARCADE)
+    game.physics.startSystem(Phaser.Physics.P2JS)
 
     game.rockTexture = game.add.tileSprite(0,0,game.canvas.width,game.canvas.height, 'rock')
     game.rockTexture.fixedToCamera = true
