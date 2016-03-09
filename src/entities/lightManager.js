@@ -42,7 +42,7 @@ export default class LightManager {
     const points = this.rayCast()
 
     this.drawAura(points)
-    // this.drawFlashlight(mouseX, mouseY, points)
+    this.drawFlashlight(mouseX, mouseY, points)
 
     this.shadowTexture.dirty = true
 
@@ -75,21 +75,48 @@ export default class LightManager {
     gradient.addColorStop(0.5, `rgba(${this.getLight(3)}, 0.5)`)
     gradient.addColorStop(1, `rgba(${this.getLight(3)}, 0.0)`)
 
+    const pointsWithStageCorners = this.stageCorners.map(corner => {
+      let ray = new Phaser.Line(this.target.x, this.target.y, corner.x, corner.y)
+      let intersect = this.getWallIntersection(ray)
+      return intersect ? null : corner
+    }).filter(r => r !== null)
+
+    points = this.sortPoints(points.concat(pointsWithStageCorners))
+
     ctx.beginPath()
     ctx.fillStyle = gradient
     ctx.moveTo(points[0].x, points[0].y)
-    for(var j = 0; j < points.length; j++) {
-      ctx.lineTo(points[j].x, points[j].y)
-    }
+    points.forEach(point => ctx.lineTo(point.x, point.y))
     ctx.closePath()
     ctx.fill()
   }
   drawFlashlight(mouseX, mouseY, points) {
     const ctx = this.shadowTexture.context
     const { width, height, player, physics } = this.game
+
+    const angle = physics.arcade.angleToPointer(player.sprite) - 0.5
+    const angle2 = physics.arcade.angleToPointer(player.sprite) + 0.5
+    const point1x = mouseX + Math.cos(angle)*1000
+    const point1y = mouseY + Math.sin(angle)*1000
+    const point2x = mouseX + Math.cos(angle2)*1000
+    const point2y = mouseY + Math.sin(angle2)*1000
+
+    const centerPoint = new Phaser.Point(...this.center)
+    const point1 = new Phaser.Point(point1x, point1y)
+    const point2 = new Phaser.Point(point2x, point2y)
+
+    const line1 = new Phaser.Line(...this.center, point1x, point1y)
+    const line2 = new Phaser.Line(...this.center, point2x, point2y)
+    const int1 = this.getWallIntersection(line1)
+    const int2 = this.getWallIntersection(line2)
+    let newPoints = [centerPoint, int1 ? int1 : point1, int2 ? int2 : point2]
+
+    const poly = new Phaser.Polygon(...this.center, point1x, point1y, point2x, point2y)
+    let filteredPoints = points.filter(p => poly.contains(p.x,p.y))
+    newPoints = this.sortPoints([...newPoints, ...filteredPoints])
+
     const innerRadius = this.lightRadius * 0.5
     const outerRadius = this.lightRadius + 100
-
     const gradient = ctx.createRadialGradient(...this.center, innerRadius, ...this.center, outerRadius)
     gradient.addColorStop(0, `rgba(${this.getLight(4)}, 1)`)
     gradient.addColorStop(1, `rgba(${this.getLight(4)}, 0.2)`)
@@ -97,17 +124,8 @@ export default class LightManager {
     ctx.beginPath()
     ctx.fillStyle = gradient
 
-    const angle = physics.arcade.angleToPointer(player.sprite) - 0.5
-    const angle2 = physics.arcade.angleToPointer(player.sprite) + 0.5
-
-    // ctx.moveTo(...this.center)
-    // ctx.lineTo(mouseX + Math.cos(angle) * 600, mouseY + Math.sin(angle) * 600 )
-    // ctx.lineTo(mouseX + Math.cos(angle2) * 600, mouseY + Math.sin(angle2) * 600 )
-
-    ctx.moveTo(points[0].x, points[0].y)
-    for(var j = 0; j < points.length; j++) {
-      ctx.lineTo(points[j].x, points[j].y)
-    }
+    ctx.moveTo(newPoints[0].x, newPoints[0].y)
+    newPoints.forEach(point => ctx.lineTo(point.x, point.y))
 
     ctx.closePath()
     ctx.fill()
@@ -148,29 +166,24 @@ export default class LightManager {
 
       if (c.x === t.x) {
         let point = c.y <= t.y ? [t.x, 0] : [t.x, h]
-        end = new Phaser.Point(point)
+        end = new Phaser.Point(...point)
       } else if (c.y === t.y) {
-        let point = c.y <= t.x ? [0, t.y] : [w, t.y]
-        end = new Phaser.Point(point)
+        let point = c.x <= t.x ? [0, t.y] : [w, t.y]
+        end = new Phaser.Point(...point)
       } else {
         let left = new Phaser.Point(0, b)
         let right = new Phaser.Point(w, slope * w + b)
         let top = new Phaser.Point(-b / slope, 0)
         let bottom = new Phaser.Point((h - b) / slope, h)
 
-        let below = top.x >= 0
-        let above = bottom.x >= 0
-        let toLeft = bottom.x <= w
-        let toRight = bottom.x <= w
-
         if (c.y <= t.y && c.x >= t.x) {
-          end = below && toLeft ? top : right
+          end = (top.x >= 0 && top.x <= w) ? top : right
         } else if (c.y <= t.y && c.x <= t.x) {
-          end = below && toLeft ? top : left
+          end = (top.x >= 0 && top.x <= w) ? top : left
         } else if (c.y >= t.y && c.x >= t.x) {
-          end = above && toRight ? bottom : right
+          end = (bottom.x >= 0 && bottom.x <= w) ? bottom : right
         } else if (c.y >= t.y && c.x <= t.x) {
-          end = above && toRight ? bottom : left
+          end = (bottom.x >= 0 && bottom.x <= w) ? bottom : left
         }
       }
 
@@ -179,12 +192,10 @@ export default class LightManager {
       points.push(intersect ? intersect : ray.end)
     })
 
-    this.stageCorners.forEach(corner => {
-      let ray = new Phaser.Line(t.x, t.y, corner.x, corner.y)
-      let intersect = this.getWallIntersection(ray)
-      if (!intersect) points.push(corner)
-    })
-
+    return points
+  }
+  sortPoints(points) {
+    let t = this.target
     return points.sort(function(a, b) {
       if (a.x - t.x >= 0 && b.x - t.x < 0)
         return 1
