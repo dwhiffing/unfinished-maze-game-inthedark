@@ -1,7 +1,7 @@
 import utils from '../utils'
 
 export default class LightManager {
-  constructor(game, lightRadius=140) {
+  constructor(game, lightRadius=240) {
     this.game = game
     this.lightRadius = lightRadius
 
@@ -106,6 +106,12 @@ export default class LightManager {
     const point1 = new Phaser.Point(point1x, point1y)
     const point2 = new Phaser.Point(point2x, point2y)
 
+    const StageCorners = this.stageCorners.map(corner => {
+      let ray = new Phaser.Line(this.target.x, this.target.y, corner.x, corner.y)
+      let intersect = this.getWallIntersection(ray)
+      return intersect ? null : corner
+    }).filter(r => r !== null)
+
     // const line1 = new Phaser.Line(...this.center, point1x, point1y)
     // const line2 = new Phaser.Line(...this.center, point2x, point2y)
     // const int1 = this.getWallIntersection(line1)
@@ -113,7 +119,7 @@ export default class LightManager {
     let newPoints = this.rayCast([point1, point2])
 
     const poly = new Phaser.Polygon(...this.center, point1x, point1y, point2x, point2y)
-    let filteredPoints = points.filter(p => poly.contains(p.x,p.y))
+    let filteredPoints = [...points, ...StageCorners].filter(p => poly.contains(p.x,p.y))
     newPoints = this.sortPoints([...newPoints, ...filteredPoints])
 
     const innerRadius = this.lightRadius * 0.5
