@@ -39,7 +39,8 @@ export default class LightManager {
       this.target.y,
     ]
 
-    const points = this.rayCast()
+    const corners = this.getCorners()
+    const points = this.rayCast(corners)
 
     this.drawAura(points)
     this.drawFlashlight(mouseX, mouseY, points)
@@ -96,20 +97,20 @@ export default class LightManager {
 
     const angle = physics.arcade.angleToPointer(player.sprite) - 0.5
     const angle2 = physics.arcade.angleToPointer(player.sprite) + 0.5
-    const point1x = mouseX + Math.cos(angle)*1000
-    const point1y = mouseY + Math.sin(angle)*1000
-    const point2x = mouseX + Math.cos(angle2)*1000
-    const point2y = mouseY + Math.sin(angle2)*1000
+    const point1x = mouseX + Math.cos(angle) * 5000
+    const point1y = mouseY + Math.sin(angle) * 5000
+    const point2x = mouseX + Math.cos(angle2) * 5000
+    const point2y = mouseY + Math.sin(angle2) * 5000
 
     const centerPoint = new Phaser.Point(...this.center)
     const point1 = new Phaser.Point(point1x, point1y)
     const point2 = new Phaser.Point(point2x, point2y)
 
-    const line1 = new Phaser.Line(...this.center, point1x, point1y)
-    const line2 = new Phaser.Line(...this.center, point2x, point2y)
-    const int1 = this.getWallIntersection(line1)
-    const int2 = this.getWallIntersection(line2)
-    let newPoints = [centerPoint, int1 ? int1 : point1, int2 ? int2 : point2]
+    // const line1 = new Phaser.Line(...this.center, point1x, point1y)
+    // const line2 = new Phaser.Line(...this.center, point2x, point2y)
+    // const int1 = this.getWallIntersection(line1)
+    // const int2 = this.getWallIntersection(line2)
+    let newPoints = this.rayCast([point1, point2])
 
     const poly = new Phaser.Polygon(...this.center, point1x, point1y, point2x, point2y)
     let filteredPoints = points.filter(p => poly.contains(p.x,p.y))
@@ -124,7 +125,7 @@ export default class LightManager {
     ctx.beginPath()
     ctx.fillStyle = gradient
 
-    ctx.moveTo(newPoints[0].x, newPoints[0].y)
+    ctx.moveTo(centerPoint.x, centerPoint.y)
     newPoints.forEach(point => ctx.lineTo(point.x, point.y))
 
     ctx.closePath()
@@ -153,29 +154,33 @@ export default class LightManager {
     })
     return corners
   }
-  rayCast() {
+  rayCast(input) {
     let t = this.target
     let w = this.game.width
     let h = this.game.height
     let points = []
 
-    this.getCorners().forEach(c => {
+    input.forEach(c => {
       let slope = (c.y - t.y) / (c.x - t.x)
       let b = t.y - slope * t.x
       let end = null
 
       if (c.x === t.x) {
+        // Vertical lines
         let point = c.y <= t.y ? [t.x, 0] : [t.x, h]
         end = new Phaser.Point(...point)
       } else if (c.y === t.y) {
+        // Horizontal lines
         let point = c.x <= t.x ? [0, t.y] : [w, t.y]
         end = new Phaser.Point(...point)
       } else {
+        // Find the point where the line crosses the stage edge
         let left = new Phaser.Point(0, b)
         let right = new Phaser.Point(w, slope * w + b)
         let top = new Phaser.Point(-b / slope, 0)
         let bottom = new Phaser.Point((h - b) / slope, h)
 
+        // Get the actual intersection point
         if (c.y <= t.y && c.x >= t.x) {
           end = (top.x >= 0 && top.x <= w) ? top : right
         } else if (c.y <= t.y && c.x <= t.x) {
