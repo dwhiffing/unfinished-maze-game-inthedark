@@ -28,7 +28,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
   game.state.start('boot');
 })();
 
-},{"./states/boot":11,"./states/load":12,"./states/play":13}],2:[function(require,module,exports){
+},{"./states/boot":10,"./states/load":11,"./states/play":12}],2:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -15160,13 +15160,19 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _utils = require('../utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var LightManager = function () {
   function LightManager(game) {
-    var lightRadius = arguments.length <= 1 || arguments[1] === undefined ? 200 : arguments[1];
+    var lightRadius = arguments.length <= 1 || arguments[1] === undefined ? 140 : arguments[1];
 
     _classCallCheck(this, LightManager);
 
@@ -15179,73 +15185,252 @@ var LightManager = function () {
     this.lightSprite = game.add.image(0, 0, this.shadowTexture);
     this.lightSprite.blendMode = Phaser.blendModes.MULTIPLY;
     this.lightSprite.fixedToCamera = true;
+
+    this.rayBitmap = this.game.add.bitmapData(this.game.width, this.game.height);
+    this.rayBitmapImage = this.game.add.image(0, 0, this.rayBitmap);
+    this.rayBitmapImage.visible = false;
+    this.rayBitmapImage.fixedToCamera = true;
+
+    this.walls = this.game.add.group();
+    var x = this.game.world.width / 2;
+    var y = this.game.world.height / 2;
+    this.game.add.image(x, y, 'block', 0, this.walls).scale.setTo(3, 3);
+
+    this.stageCorners = [new Phaser.Point(0, 0), new Phaser.Point(this.game.width, 0), new Phaser.Point(this.game.width, this.game.height), new Phaser.Point(0, this.game.height)];
   }
 
   _createClass(LightManager, [{
+    key: 'update',
+    value: function update(mouseX, mouseY) {
+      this.shadowTexture.context.fillStyle = 'rgba(13, 13, 13, 1)';
+      this.shadowTexture.context.fillRect(0, 0, this.game.width, this.game.height);
+
+      this.target = _utils2.default.getPositionOnCamera(this.game, this.game.player.sprite);
+      this.center = [this.target.x, this.target.y];
+
+      var points = this.rayCast();
+
+      this.drawAura(points);
+      this.drawFlashlight(mouseX, mouseY, points);
+
+      this.shadowTexture.dirty = true;
+
+      if (this.rayBitmapImage.visible) {
+        this.drawRayCast(points);
+        this.rayBitmap.dirty = true;
+      }
+    }
+  }, {
+    key: 'drawRayCast',
+    value: function drawRayCast(points) {
+      this.rayBitmap.context.clearRect(0, 0, this.game.width, this.game.height);
+      this.rayBitmap.context.beginPath();
+      this.rayBitmap.context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      this.rayBitmap.context.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      this.rayBitmap.context.moveTo(points[0].x, points[0].y);
+      for (var k = 0; k < points.length; k++) {
+        this.rayBitmap.context.moveTo(this.target.x, this.target.y);
+        this.rayBitmap.context.lineTo(points[k].x, points[k].y);
+        this.rayBitmap.context.fillRect(points[k].x - 2, points[k].y - 2, 4, 4);
+      }
+      this.rayBitmap.context.stroke();
+    }
+  }, {
     key: 'drawAura',
-    value: function drawAura() {
+    value: function drawAura(points) {
+      var _this = this;
+
       var ctx = this.shadowTexture.context;
       var _game = this.game;
       var width = _game.width;
       var height = _game.height;
       var player = _game.player;
       var physics = _game.physics;
-      var center = _game.center;
 
-      var flicker = this.game.rnd.integerInRange(0, this.lightRadius / 5);
+      var flicker = this.game.rnd.integerInRange(0, this.lightRadius / 10);
       var innerRadius = this.lightRadius * 0.05;
       var outerRadius = this.lightRadius + flicker;
-
-      var gradient = ctx.createRadialGradient.apply(ctx, _toConsumableArray(center).concat([innerRadius], _toConsumableArray(center), [outerRadius]));
-      gradient.addColorStop(0, 'rgba(' + this.getLight(3) + ', 0.5)');
-      gradient.addColorStop(0.5, 'rgba(' + this.getLight(3) + ', 0.2)');
+      var gradient = ctx.createRadialGradient.apply(ctx, _toConsumableArray(this.center).concat([innerRadius], _toConsumableArray(this.center), [outerRadius]));
+      gradient.addColorStop(0, 'rgba(' + this.getLight(3) + ', 0.9)');
+      gradient.addColorStop(0.5, 'rgba(' + this.getLight(3) + ', 0.5)');
       gradient.addColorStop(1, 'rgba(' + this.getLight(3) + ', 0.0)');
+
+      var pointsWithStageCorners = this.stageCorners.map(function (corner) {
+        var ray = new Phaser.Line(_this.target.x, _this.target.y, corner.x, corner.y);
+        var intersect = _this.getWallIntersection(ray);
+        return intersect ? null : corner;
+      }).filter(function (r) {
+        return r !== null;
+      });
+
+      points = this.sortPoints(points.concat(pointsWithStageCorners));
 
       ctx.beginPath();
       ctx.fillStyle = gradient;
-      ctx.arc.apply(ctx, _toConsumableArray(center).concat([outerRadius, 0, Math.PI * 2]));
+      ctx.moveTo(points[0].x, points[0].y);
+      points.forEach(function (point) {
+        return ctx.lineTo(point.x, point.y);
+      });
       ctx.closePath();
       ctx.fill();
     }
   }, {
     key: 'drawFlashlight',
-    value: function drawFlashlight(mouseX, mouseY) {
+    value: function drawFlashlight(mouseX, mouseY, points) {
       var ctx = this.shadowTexture.context;
       var _game2 = this.game;
       var width = _game2.width;
       var height = _game2.height;
       var player = _game2.player;
       var physics = _game2.physics;
-      var center = _game2.center;
+
+
+      var angle = physics.arcade.angleToPointer(player.sprite) - 0.5;
+      var angle2 = physics.arcade.angleToPointer(player.sprite) + 0.5;
+      var point1x = mouseX + Math.cos(angle) * 1000;
+      var point1y = mouseY + Math.sin(angle) * 1000;
+      var point2x = mouseX + Math.cos(angle2) * 1000;
+      var point2y = mouseY + Math.sin(angle2) * 1000;
+
+      var centerPoint = new (Function.prototype.bind.apply(Phaser.Point, [null].concat(_toConsumableArray(this.center))))();
+      var point1 = new Phaser.Point(point1x, point1y);
+      var point2 = new Phaser.Point(point2x, point2y);
+
+      var line1 = new (Function.prototype.bind.apply(Phaser.Line, [null].concat(_toConsumableArray(this.center), [point1x, point1y])))();
+      var line2 = new (Function.prototype.bind.apply(Phaser.Line, [null].concat(_toConsumableArray(this.center), [point2x, point2y])))();
+      var int1 = this.getWallIntersection(line1);
+      var int2 = this.getWallIntersection(line2);
+      var newPoints = [centerPoint, int1 ? int1 : point1, int2 ? int2 : point2];
+
+      var poly = new (Function.prototype.bind.apply(Phaser.Polygon, [null].concat(_toConsumableArray(this.center), [point1x, point1y, point2x, point2y])))();
+      var filteredPoints = points.filter(function (p) {
+        return poly.contains(p.x, p.y);
+      });
+      newPoints = this.sortPoints([].concat(_toConsumableArray(newPoints), _toConsumableArray(filteredPoints)));
 
       var innerRadius = this.lightRadius * 0.5;
       var outerRadius = this.lightRadius + 100;
-
-      var gradient = ctx.createRadialGradient.apply(ctx, _toConsumableArray(center).concat([innerRadius], _toConsumableArray(center), [outerRadius]));
+      var gradient = ctx.createRadialGradient.apply(ctx, _toConsumableArray(this.center).concat([innerRadius], _toConsumableArray(this.center), [outerRadius]));
       gradient.addColorStop(0, 'rgba(' + this.getLight(4) + ', 1)');
       gradient.addColorStop(1, 'rgba(' + this.getLight(4) + ', 0.2)');
 
       ctx.beginPath();
       ctx.fillStyle = gradient;
-      var angle = physics.arcade.angleToPointer(player.sprite) - 0.4;
-      var angle2 = physics.arcade.angleToPointer(player.sprite) + 0.4;
-      ctx.moveTo.apply(ctx, _toConsumableArray(center));
-      ctx.lineTo(mouseX + Math.cos(angle) * 1000, mouseY + Math.sin(angle) * 1000);
-      ctx.lineTo(mouseX + Math.cos(angle2) * 1000, mouseY + Math.sin(angle2) * 1000);
+
+      ctx.moveTo(newPoints[0].x, newPoints[0].y);
+      newPoints.forEach(function (point) {
+        return ctx.lineTo(point.x, point.y);
+      });
 
       ctx.closePath();
       ctx.fill();
     }
   }, {
-    key: 'update',
-    value: function update(mouseX, mouseY) {
-      this.shadowTexture.context.fillStyle = 'rgb(0, 0, 0)';
-      this.shadowTexture.context.fillRect(0, 0, this.game.width, this.game.height);
+    key: 'getCorners',
+    value: function getCorners() {
+      var _this2 = this;
 
-      this.drawAura();
-      this.drawFlashlight(mouseX, mouseY);
+      // find all the corners visible on the screen and get them into a single array of x,y point pairs
+      // right now its just the one block
+      var corners = [];
 
-      this.shadowTexture.dirty = true;
+      this.walls.forEach(function (wall) {
+        var wallPos = _utils2.default.getPositionOnCamera(_this2.game, wall);
+        corners = corners.concat([new Phaser.Point(wallPos.x + 0.1, wallPos.y + 0.1), new Phaser.Point(wallPos.x - 0.1, wallPos.y - 0.1), new Phaser.Point(wallPos.x - 0.1 + wall.width, wallPos.y + 0.1), new Phaser.Point(wallPos.x + 0.1 + wall.width, wallPos.y - 0.1), new Phaser.Point(wallPos.x - 0.1 + wall.width, wallPos.y - 0.1 + wall.height), new Phaser.Point(wallPos.x + 0.1 + wall.width, wallPos.y + 0.1 + wall.height), new Phaser.Point(wallPos.x + 0.1, wallPos.y - 0.1 + wall.height), new Phaser.Point(wallPos.x - 0.1, wallPos.y + 0.1 + wall.height)]);
+      });
+      return corners;
+    }
+  }, {
+    key: 'rayCast',
+    value: function rayCast() {
+      var _this3 = this;
+
+      var t = this.target;
+      var w = this.game.width;
+      var h = this.game.height;
+      var points = [];
+
+      this.getCorners().forEach(function (c) {
+        var slope = (c.y - t.y) / (c.x - t.x);
+        var b = t.y - slope * t.x;
+        var end = null;
+
+        if (c.x === t.x) {
+          var point = c.y <= t.y ? [t.x, 0] : [t.x, h];
+          end = new (Function.prototype.bind.apply(Phaser.Point, [null].concat(point)))();
+        } else if (c.y === t.y) {
+          var _point = c.x <= t.x ? [0, t.y] : [w, t.y];
+          end = new (Function.prototype.bind.apply(Phaser.Point, [null].concat(_point)))();
+        } else {
+          var left = new Phaser.Point(0, b);
+          var right = new Phaser.Point(w, slope * w + b);
+          var top = new Phaser.Point(-b / slope, 0);
+          var bottom = new Phaser.Point((h - b) / slope, h);
+
+          if (c.y <= t.y && c.x >= t.x) {
+            end = top.x >= 0 && top.x <= w ? top : right;
+          } else if (c.y <= t.y && c.x <= t.x) {
+            end = top.x >= 0 && top.x <= w ? top : left;
+          } else if (c.y >= t.y && c.x >= t.x) {
+            end = bottom.x >= 0 && bottom.x <= w ? bottom : right;
+          } else if (c.y >= t.y && c.x <= t.x) {
+            end = bottom.x >= 0 && bottom.x <= w ? bottom : left;
+          }
+        }
+
+        var ray = new Phaser.Line(t.x, t.y, end.x, end.y);
+        var intersect = _this3.getWallIntersection(ray);
+        points.push(intersect ? intersect : ray.end);
+      });
+
+      return points;
+    }
+  }, {
+    key: 'sortPoints',
+    value: function sortPoints(points) {
+      var t = this.target;
+      return points.sort(function (a, b) {
+        if (a.x - t.x >= 0 && b.x - t.x < 0) return 1;
+        if (a.x - t.x < 0 && b.x - t.x >= 0) return -1;
+        if (a.x - t.x === 0 && b.x - t.x === 0) {
+          if (a.y - t.y >= 0 || b.y - t.y >= 0) return 1;
+          return -1;
+        }
+
+        var det = (a.x - t.x) * (b.y - t.y) - (b.x - t.x) * (a.y - t.y);
+        if (det < 0) return 1;
+        if (det > 0) return -1;
+
+        var d1 = (a.x - t.x) * (a.x - t.x) + (a.y - t.y) * (a.y - t.y);
+        var d2 = (b.x - t.x) * (b.x - t.x) + (b.y - t.y) * (b.y - t.y);
+        return 1;
+      });
+    }
+  }, {
+    key: 'getWallIntersection',
+    value: function getWallIntersection(ray) {
+      var _this4 = this;
+
+      var distanceToWall = Number.POSITIVE_INFINITY;
+      var closestIntersection = null;
+
+      this.walls.forEach(function (wall) {
+        var wallPos = _utils2.default.getPositionOnCamera(_this4.game, wall);
+        var lines = [new Phaser.Line(wallPos.x, wallPos.y, wallPos.x + wall.width, wallPos.y), new Phaser.Line(wallPos.x, wallPos.y, wallPos.x, wallPos.y + wall.height), new Phaser.Line(wallPos.x + wall.width, wallPos.y, wallPos.x + wall.width, wallPos.y + wall.height), new Phaser.Line(wallPos.x, wallPos.y + wall.height, wallPos.x + wall.width, wallPos.y + wall.height)];
+
+        lines.forEach(function (line) {
+          var intersect = Phaser.Line.intersects(ray, line);
+          if (intersect) {
+            var distance = _this4.game.math.distance(ray.start.x, ray.start.y, intersect.x, intersect.y);
+            if (distance < distanceToWall) {
+              distanceToWall = distance;
+              closestIntersection = intersect;
+            }
+          }
+        });
+      });
+
+      return closestIntersection;
     }
   }, {
     key: 'getLight',
@@ -15259,7 +15444,7 @@ var LightManager = function () {
 
 exports.default = LightManager;
 
-},{}],5:[function(require,module,exports){
+},{"../utils":13}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15273,10 +15458,6 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _mapGenerator = require('./mapGenerator');
 
 var _mapGenerator2 = _interopRequireDefault(_mapGenerator);
-
-var _mapTile = require('./mapTile');
-
-var _mapTile2 = _interopRequireDefault(_mapTile);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -15292,7 +15473,7 @@ var Map = function () {
     this.game = game;
     this.group = game.add.group();
 
-    this.tileScale = 1.5;
+    this.tileScale = 1.2;
     this.buffer = this.tileScale * 1000;
 
     this.map = new _mapGenerator2.default(game, size);
@@ -15308,12 +15489,12 @@ var Map = function () {
 
       // this.group.destroy()
       this.map.data.forEach(function (tile) {
-        var thing = new _mapTile2.default(_this.game, _extends({}, tile, {
+        var sprite = tile.render(_this.game, _extends({}, tile, {
           x: tile.x * _this.buffer,
           y: tile.y * _this.buffer,
           scale: _this.tileScale
         }));
-        _this.group.add(thing);
+        _this.group.add(sprite);
       });
     }
   }]);
@@ -15323,7 +15504,7 @@ var Map = function () {
 
 exports.default = Map;
 
-},{"./mapGenerator":6,"./mapTile":7}],6:[function(require,module,exports){
+},{"./mapGenerator":6}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15620,60 +15801,7 @@ var MapGenerator = function () {
 
 exports.default = MapGenerator;
 
-},{"../utils":14,"./tile":10,"lodash":2}],7:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var mapTile = function (_Phaser$Sprite) {
-  _inherits(mapTile, _Phaser$Sprite);
-
-  function mapTile(game, _ref) {
-    var x = _ref.x;
-    var y = _ref.y;
-    var scale = _ref.scale;
-    var _ref$type = _ref.type;
-    var type = _ref$type === undefined ? 0 : _ref$type;
-    var _ref$rotation = _ref.rotation;
-    var rotation = _ref$rotation === undefined ? 0 : _ref$rotation;
-    var _ref$shape = _ref.shape;
-    var shape = _ref$shape === undefined ? 0 : _ref$shape;
-    var _ref$mapTile = _ref.mapTile;
-
-    var _mapTile = _ref$mapTile === undefined ? false : _ref$mapTile;
-
-    _classCallCheck(this, mapTile);
-
-    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(mapTile).call(this, game, x, y, _mapTile ? 'tiles4' : 'tiles3'));
-
-    _this.anchor.setTo(0.5);
-    _this.scale.setTo(scale);
-
-    var simple = true;
-    var frameExtra = simple && _mapTile ? null : 6 * shape;
-
-    _this.frame = type + 1 + frameExtra;
-    _this.angle = rotation * 90;
-
-    _this.x += _this.width / 2;
-    _this.y += _this.height / 2;
-    return _this;
-  }
-
-  return mapTile;
-}(Phaser.Sprite);
-
-exports.default = mapTile;
-
-},{}],8:[function(require,module,exports){
+},{"../utils":13,"./tile":9,"lodash":2}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15683,12 +15811,6 @@ Object.defineProperty(exports, "__esModule", {
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _mapTile = require('./mapTile');
-
-var _mapTile2 = _interopRequireDefault(_mapTile);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -15719,14 +15841,14 @@ var MiniMap = function () {
 
       // this.group.destroyAll()
       this.map.data.forEach(function (tile) {
-        var mapTile = new _mapTile2.default(_this.game, _extends({}, tile, {
+        var sprite = tile.render(_this.game, _extends({}, tile, {
           x: tile.x * _this.buffer,
           y: tile.y * _this.buffer,
           scale: _this.tileScale,
           mapTile: true
         }));
-        mapTile.fixedToCamera = true;
-        _this.group.add(mapTile);
+        sprite.fixedToCamera = true;
+        _this.group.add(sprite);
       });
     }
   }, {
@@ -15742,7 +15864,7 @@ var MiniMap = function () {
 
 exports.default = MiniMap;
 
-},{"./mapTile":7}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15762,10 +15884,11 @@ var Player = function () {
     this.group = game.add.group();
     this.speed = 3;
 
-    this.sprite = game.add.sprite(game.width / 2, game.height / 2, 'cross');
+    this.sprite = game.add.sprite(game.world.width / 2, game.world.height / 2, 'cross');
     this.sprite.anchor.setTo(0.5, 0.5);
-    this.sprite.fixedToCamera = true;
     this.group.add(this.sprite);
+
+    game.physics.enable(this.sprite);
 
     this.keys = game.input.keyboard.addKeys({
       w: Phaser.KeyCode.W,
@@ -15798,11 +15921,18 @@ var Player = function () {
   }, {
     key: 'move',
     value: function move(x, y) {
-      this.game.camera.x += x * this.speed;
-      this.game.camera.y += y * this.speed;
+      this.sprite.x += x * this.speed;
+      this.sprite.y += y * this.speed;
 
-      this.game.rockTexture.tilePosition.x -= x * this.speed;
-      this.game.rockTexture.tilePosition.y -= y * this.speed;
+      if (this.game.camera.position.x !== this.lastX) {
+        this.game.rockTexture.tilePosition.x -= x * this.speed;
+      }
+      if (this.game.camera.position.y !== this.lastY) {
+        this.game.rockTexture.tilePosition.y -= y * this.speed;
+      }
+
+      this.lastX = this.game.camera.position.x;
+      this.lastY = this.game.camera.position.y;
     }
   }]);
 
@@ -15811,8 +15941,8 @@ var Player = function () {
 
 exports.default = Player;
 
-},{}],10:[function(require,module,exports){
-"use strict";
+},{}],9:[function(require,module,exports){
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -15843,7 +15973,7 @@ var Tile = function () {
 
 
   _createClass(Tile, [{
-    key: "openPaths",
+    key: 'openPaths',
     value: function openPaths() {
       var paths = function () {
         switch (this.type) {
@@ -15861,8 +15991,40 @@ var Tile = function () {
             return [];
         }
       }.bind(this)();
+
       paths = paths.sort();
+
       return paths;
+    }
+  }, {
+    key: 'render',
+    value: function render(game, _ref) {
+      var x = _ref.x;
+      var y = _ref.y;
+      var scale = _ref.scale;
+      var _ref$type = _ref.type;
+      var type = _ref$type === undefined ? 0 : _ref$type;
+      var _ref$rotation = _ref.rotation;
+      var rotation = _ref$rotation === undefined ? 0 : _ref$rotation;
+      var _ref$shape = _ref.shape;
+      var shape = _ref$shape === undefined ? 0 : _ref$shape;
+      var _ref$mapTile = _ref.mapTile;
+      var mapTile = _ref$mapTile === undefined ? false : _ref$mapTile;
+
+      var sprite = game.make.sprite(x, y, mapTile ? 'tiles4' : 'tiles3');
+      var simple = true;
+      var frameExtra = simple && mapTile ? null : 6 * shape;
+
+      sprite.anchor.setTo(0.5);
+      sprite.scale.setTo(scale);
+
+      sprite.frame = type + 1 + frameExtra;
+      sprite.angle = rotation * 90;
+
+      sprite.x += sprite.width / 2;
+      sprite.y += sprite.height / 2;
+
+      return sprite;
     }
   }]);
 
@@ -15871,7 +16033,7 @@ var Tile = function () {
 
 exports.default = Tile;
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15884,7 +16046,7 @@ exports.default = {
   }
 };
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15906,7 +16068,7 @@ exports.default = {
   }
 };
 
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -15940,7 +16102,6 @@ exports.default = {
     // game.stage.backgroundColor="#4488AA"
 
     game.physics.startSystem(Phaser.Physics.ARCADE);
-    game.center = [game.width / 2, game.height / 2];
 
     game.rockTexture = game.add.tileSprite(0, 0, game.canvas.width, game.canvas.height, 'rock');
     game.rockTexture.fixedToCamera = true;
@@ -15950,10 +16111,9 @@ exports.default = {
 
     game.world.setBounds(0, 0, game.map.group.width, game.map.group.height);
 
-    game.camera.x = game.world.width / 2 - game.canvas.width / 2;
-    game.camera.y = game.world.height / 2 - game.canvas.height / 2;
-
     game.player = new _player2.default(game);
+
+    game.camera.follow(game.player.sprite, 3);
 
     game.lightManager = new _lightManager2.default(game);
 
@@ -15971,6 +16131,8 @@ exports.default = {
   },
   update: function update(game) {
     // game.inputManager.update()
+    game.center = [game.player.sprite.x - game.camera.position.x, game.player.sprite.y - game.camera.position.y];
+
     game.miniMap.update(this.game.camera.x, this.game.camera.y);
     game.lightManager.update(game.input.x, game.input.y);
     game.player.update();
@@ -15978,7 +16140,7 @@ exports.default = {
   render: function render(game) {}
 };
 
-},{"../entities/InputManager":3,"../entities/lightManager":4,"../entities/map":5,"../entities/miniMap":8,"../entities/player":9}],14:[function(require,module,exports){
+},{"../entities/InputManager":3,"../entities/lightManager":4,"../entities/map":5,"../entities/miniMap":7,"../entities/player":8}],13:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -16004,6 +16166,12 @@ exports.default = {
       });
     }
     return _directionNumToWord(path);
+  },
+  getPositionOnCamera: function getPositionOnCamera(game, target) {
+    return {
+      x: target.x - game.camera.position.x + 400,
+      y: target.y - game.camera.position.y + 225
+    };
   },
   _directionNumToWord: function _directionNumToWord(path) {
     switch (path) {
