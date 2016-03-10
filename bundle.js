@@ -15172,7 +15172,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var LightManager = function () {
   function LightManager(game) {
-    var lightRadius = arguments.length <= 1 || arguments[1] === undefined ? 140 : arguments[1];
+    var lightRadius = arguments.length <= 1 || arguments[1] === undefined ? 200 : arguments[1];
 
     _classCallCheck(this, LightManager);
 
@@ -15194,7 +15194,7 @@ var LightManager = function () {
     this.walls = this.game.add.group();
     var x = this.game.world.width / 2;
     var y = this.game.world.height / 2;
-    this.game.add.image(x, y, 'block', 0, this.walls).scale.setTo(3, 3);
+    // this.game.add.image(x, y, 'block', 0, this.walls).scale.setTo(3, 3)
 
     this.stageCorners = [new Phaser.Point(0, 0), new Phaser.Point(this.game.width, 0), new Phaser.Point(this.game.width, this.game.height), new Phaser.Point(0, this.game.height)];
   }
@@ -15208,7 +15208,8 @@ var LightManager = function () {
       this.target = _utils2.default.getPositionOnCamera(this.game, this.game.player.sprite);
       this.center = [this.target.x, this.target.y];
 
-      var points = this.rayCast();
+      var corners = this.getCorners();
+      var points = this.rayCast(corners);
 
       this.drawAura(points);
       this.drawFlashlight(mouseX, mouseY, points);
@@ -15277,6 +15278,8 @@ var LightManager = function () {
   }, {
     key: 'drawFlashlight',
     value: function drawFlashlight(mouseX, mouseY, points) {
+      var _this2 = this;
+
       var ctx = this.shadowTexture.context;
       var _game2 = this.game;
       var width = _game2.width;
@@ -15287,23 +15290,31 @@ var LightManager = function () {
 
       var angle = physics.arcade.angleToPointer(player.sprite) - 0.5;
       var angle2 = physics.arcade.angleToPointer(player.sprite) + 0.5;
-      var point1x = mouseX + Math.cos(angle) * 1000;
-      var point1y = mouseY + Math.sin(angle) * 1000;
-      var point2x = mouseX + Math.cos(angle2) * 1000;
-      var point2y = mouseY + Math.sin(angle2) * 1000;
+      var point1x = mouseX + Math.cos(angle) * 5000;
+      var point1y = mouseY + Math.sin(angle) * 5000;
+      var point2x = mouseX + Math.cos(angle2) * 5000;
+      var point2y = mouseY + Math.sin(angle2) * 5000;
 
       var centerPoint = new (Function.prototype.bind.apply(Phaser.Point, [null].concat(_toConsumableArray(this.center))))();
       var point1 = new Phaser.Point(point1x, point1y);
       var point2 = new Phaser.Point(point2x, point2y);
 
-      var line1 = new (Function.prototype.bind.apply(Phaser.Line, [null].concat(_toConsumableArray(this.center), [point1x, point1y])))();
-      var line2 = new (Function.prototype.bind.apply(Phaser.Line, [null].concat(_toConsumableArray(this.center), [point2x, point2y])))();
-      var int1 = this.getWallIntersection(line1);
-      var int2 = this.getWallIntersection(line2);
-      var newPoints = [centerPoint, int1 ? int1 : point1, int2 ? int2 : point2];
+      var StageCorners = this.stageCorners.map(function (corner) {
+        var ray = new Phaser.Line(_this2.target.x, _this2.target.y, corner.x, corner.y);
+        var intersect = _this2.getWallIntersection(ray);
+        return intersect ? null : corner;
+      }).filter(function (r) {
+        return r !== null;
+      });
+
+      // const line1 = new Phaser.Line(...this.center, point1x, point1y)
+      // const line2 = new Phaser.Line(...this.center, point2x, point2y)
+      // const int1 = this.getWallIntersection(line1)
+      // const int2 = this.getWallIntersection(line2)
+      var newPoints = this.rayCast([point1, point2]);
 
       var poly = new (Function.prototype.bind.apply(Phaser.Polygon, [null].concat(_toConsumableArray(this.center), [point1x, point1y, point2x, point2y])))();
-      var filteredPoints = points.filter(function (p) {
+      var filteredPoints = [].concat(_toConsumableArray(points), _toConsumableArray(StageCorners)).filter(function (p) {
         return poly.contains(p.x, p.y);
       });
       newPoints = this.sortPoints([].concat(_toConsumableArray(newPoints), _toConsumableArray(filteredPoints)));
@@ -15317,7 +15328,7 @@ var LightManager = function () {
       ctx.beginPath();
       ctx.fillStyle = gradient;
 
-      ctx.moveTo(newPoints[0].x, newPoints[0].y);
+      ctx.moveTo(centerPoint.x, centerPoint.y);
       newPoints.forEach(function (point) {
         return ctx.lineTo(point.x, point.y);
       });
@@ -15328,45 +15339,49 @@ var LightManager = function () {
   }, {
     key: 'getCorners',
     value: function getCorners() {
-      var _this2 = this;
+      var _this3 = this;
 
       // find all the corners visible on the screen and get them into a single array of x,y point pairs
       // right now its just the one block
       var corners = [];
 
       this.walls.forEach(function (wall) {
-        var wallPos = _utils2.default.getPositionOnCamera(_this2.game, wall);
+        var wallPos = _utils2.default.getPositionOnCamera(_this3.game, wall);
         corners = corners.concat([new Phaser.Point(wallPos.x + 0.1, wallPos.y + 0.1), new Phaser.Point(wallPos.x - 0.1, wallPos.y - 0.1), new Phaser.Point(wallPos.x - 0.1 + wall.width, wallPos.y + 0.1), new Phaser.Point(wallPos.x + 0.1 + wall.width, wallPos.y - 0.1), new Phaser.Point(wallPos.x - 0.1 + wall.width, wallPos.y - 0.1 + wall.height), new Phaser.Point(wallPos.x + 0.1 + wall.width, wallPos.y + 0.1 + wall.height), new Phaser.Point(wallPos.x + 0.1, wallPos.y - 0.1 + wall.height), new Phaser.Point(wallPos.x - 0.1, wallPos.y + 0.1 + wall.height)]);
       });
       return corners;
     }
   }, {
     key: 'rayCast',
-    value: function rayCast() {
-      var _this3 = this;
+    value: function rayCast(input) {
+      var _this4 = this;
 
       var t = this.target;
       var w = this.game.width;
       var h = this.game.height;
       var points = [];
 
-      this.getCorners().forEach(function (c) {
+      input.forEach(function (c) {
         var slope = (c.y - t.y) / (c.x - t.x);
         var b = t.y - slope * t.x;
         var end = null;
 
         if (c.x === t.x) {
+          // Vertical lines
           var point = c.y <= t.y ? [t.x, 0] : [t.x, h];
           end = new (Function.prototype.bind.apply(Phaser.Point, [null].concat(point)))();
         } else if (c.y === t.y) {
+          // Horizontal lines
           var _point = c.x <= t.x ? [0, t.y] : [w, t.y];
           end = new (Function.prototype.bind.apply(Phaser.Point, [null].concat(_point)))();
         } else {
+          // Find the point where the line crosses the stage edge
           var left = new Phaser.Point(0, b);
           var right = new Phaser.Point(w, slope * w + b);
           var top = new Phaser.Point(-b / slope, 0);
           var bottom = new Phaser.Point((h - b) / slope, h);
 
+          // Get the actual intersection point
           if (c.y <= t.y && c.x >= t.x) {
             end = top.x >= 0 && top.x <= w ? top : right;
           } else if (c.y <= t.y && c.x <= t.x) {
@@ -15379,7 +15394,7 @@ var LightManager = function () {
         }
 
         var ray = new Phaser.Line(t.x, t.y, end.x, end.y);
-        var intersect = _this3.getWallIntersection(ray);
+        var intersect = _this4.getWallIntersection(ray);
         points.push(intersect ? intersect : ray.end);
       });
 
@@ -15409,19 +15424,19 @@ var LightManager = function () {
   }, {
     key: 'getWallIntersection',
     value: function getWallIntersection(ray) {
-      var _this4 = this;
+      var _this5 = this;
 
       var distanceToWall = Number.POSITIVE_INFINITY;
       var closestIntersection = null;
 
       this.walls.forEach(function (wall) {
-        var wallPos = _utils2.default.getPositionOnCamera(_this4.game, wall);
+        var wallPos = _utils2.default.getPositionOnCamera(_this5.game, wall);
         var lines = [new Phaser.Line(wallPos.x, wallPos.y, wallPos.x + wall.width, wallPos.y), new Phaser.Line(wallPos.x, wallPos.y, wallPos.x, wallPos.y + wall.height), new Phaser.Line(wallPos.x + wall.width, wallPos.y, wallPos.x + wall.width, wallPos.y + wall.height), new Phaser.Line(wallPos.x, wallPos.y + wall.height, wallPos.x + wall.width, wallPos.y + wall.height)];
 
         lines.forEach(function (line) {
           var intersect = Phaser.Line.intersects(ray, line);
           if (intersect) {
-            var distance = _this4.game.math.distance(ray.start.x, ray.start.y, intersect.x, intersect.y);
+            var distance = _this5.game.math.distance(ray.start.x, ray.start.y, intersect.x, intersect.y);
             if (distance < distanceToWall) {
               distanceToWall = distance;
               closestIntersection = intersect;
@@ -15473,7 +15488,7 @@ var Map = function () {
     this.game = game;
     this.group = game.add.group();
 
-    this.tileScale = 1.2;
+    this.tileScale = 1;
     this.buffer = this.tileScale * 1000;
 
     this.map = new _mapGenerator2.default(game, size);
@@ -15557,7 +15572,8 @@ var MapGenerator = function () {
       var centerTile = this.getCenterTile();
       centerTile.type = 4;
       centerTile.rotation = this.game.rnd.between(0, 3);
-      centerTile.shape = 1;
+      centerTile.shape = 2;
+      centerTile.isCenter = true;
       if (!this.buildStepByStep) {
         do {
           this.placeNextTile();
@@ -15882,13 +15898,14 @@ var Player = function () {
     // game.physics.enable(this.sprite)
     this.game = game;
     this.group = game.add.group();
-    this.speed = 3;
+    this.speed = 20;
 
     this.sprite = game.add.sprite(game.world.width / 2, game.world.height / 2, 'cross');
     this.sprite.anchor.setTo(0.5, 0.5);
     this.group.add(this.sprite);
-
-    game.physics.enable(this.sprite);
+    game.physics.p2.enable(this.sprite);
+    this.sprite.body.setCircle(15);
+    this.sprite.body.fixedRotation = true;
 
     this.keys = game.input.keyboard.addKeys({
       w: Phaser.KeyCode.W,
@@ -15916,23 +15933,24 @@ var Player = function () {
         x = 1;
       }
 
+      this.sprite.body.velocity.x *= 0.9;
+      this.sprite.body.velocity.y *= 0.9;
+      if (this.game.camera.position.x !== this.lastX) {
+        this.game.rockTexture.tilePosition.x -= this.sprite.body.velocity.x / 100;
+      }
+      if (this.game.camera.position.y !== this.lastY) {
+        this.game.rockTexture.tilePosition.y -= this.sprite.body.velocity.y / 100;
+      }
+
+      this.lastX = this.game.camera.position.x;
+      this.lastY = this.game.camera.position.y;
       this.move(x, y);
     }
   }, {
     key: 'move',
     value: function move(x, y) {
-      this.sprite.x += x * this.speed;
-      this.sprite.y += y * this.speed;
-
-      if (this.game.camera.position.x !== this.lastX) {
-        this.game.rockTexture.tilePosition.x -= x * this.speed;
-      }
-      if (this.game.camera.position.y !== this.lastY) {
-        this.game.rockTexture.tilePosition.y -= y * this.speed;
-      }
-
-      this.lastX = this.game.camera.position.x;
-      this.lastY = this.game.camera.position.y;
+      this.sprite.body.velocity.x += x * this.speed;
+      this.sprite.body.velocity.y += y * this.speed;
     }
   }]);
 
@@ -16010,19 +16028,27 @@ var Tile = function () {
       var shape = _ref$shape === undefined ? 0 : _ref$shape;
       var _ref$mapTile = _ref.mapTile;
       var mapTile = _ref$mapTile === undefined ? false : _ref$mapTile;
+      var _ref$isCenter = _ref.isCenter;
+      var isCenter = _ref$isCenter === undefined ? false : _ref$isCenter;
 
       var sprite = game.make.sprite(x, y, mapTile ? 'tiles4' : 'tiles3');
       var simple = true;
       var frameExtra = simple && mapTile ? null : 6 * shape;
-
       sprite.anchor.setTo(0.5);
       sprite.scale.setTo(scale);
 
       sprite.frame = type + 1 + frameExtra;
-      sprite.angle = rotation * 90;
-
       sprite.x += sprite.width / 2;
       sprite.y += sprite.height / 2;
+      sprite.angle = rotation * 90;
+
+      if (!mapTile && sprite.frame != 0) {
+        game.physics.p2.enable(sprite);
+        sprite.body.clearShapes();
+        sprite.body.loadPolygon('physicsData', '' + (sprite.frame - 1));
+        sprite.body.static = true;
+        sprite.body.angle = rotation * 90;
+      }
 
       return sprite;
     }
@@ -16062,6 +16088,7 @@ exports.default = {
     this.load.spritesheet('tiles4', 'images/tiles4.png', 200, 200);
     this.load.image('playerDot', 'images/dot.png');
     this.load.image('rock', 'images/rock.jpg');
+    this.load.physics('physicsData', 'images/sprites.json');
   },
   onLoadComplete: function onLoadComplete() {
     this.game.state.start('play', true, false);
@@ -16101,7 +16128,7 @@ exports.default = {
   create: function create(game) {
     // game.stage.backgroundColor="#4488AA"
 
-    game.physics.startSystem(Phaser.Physics.ARCADE);
+    game.physics.startSystem(Phaser.Physics.P2JS);
 
     game.rockTexture = game.add.tileSprite(0, 0, game.canvas.width, game.canvas.height, 'rock');
     game.rockTexture.fixedToCamera = true;
