@@ -40,16 +40,16 @@ export default class Tile {
     sprite.scale.setTo(scale)
 
     sprite.frame = (type+1) + frameExtra
-    sprite.angle = rotation * 90
     sprite.x += sprite.width/2
     sprite.y += sprite.height/2
+    sprite.angle = rotation * 90
 
-    if (isCenter) {
-      game.physics.p2.enable(sprite, true)
-
+    if (!mapTile && sprite.frame != 0) {
+      game.physics.p2.enable(sprite)
       sprite.body.clearShapes()
-      sprite.body.loadPolygon('physicsData', '16')
+      sprite.body.loadPolygon('physicsData', `${sprite.frame - 1}`)
       sprite.body.static = true
+      sprite.body.angle = rotation * 90
     }
 
 

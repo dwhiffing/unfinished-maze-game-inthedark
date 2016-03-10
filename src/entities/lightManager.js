@@ -1,7 +1,7 @@
 import utils from '../utils'
 
 export default class LightManager {
-  constructor(game, lightRadius=240) {
+  constructor(game, lightRadius=200) {
     this.game = game
     this.lightRadius = lightRadius
 
@@ -20,7 +20,7 @@ export default class LightManager {
     this.walls = this.game.add.group()
     let x = this.game.world.width/2
     let y = this.game.world.height/2
-    this.game.add.image(x, y, 'block', 0, this.walls).scale.setTo(3, 3)
+    // this.game.add.image(x, y, 'block', 0, this.walls).scale.setTo(3, 3)
 
     this.stageCorners = [
       new Phaser.Point(0, 0),
