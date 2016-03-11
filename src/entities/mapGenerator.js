@@ -21,9 +21,8 @@ export default class MapGenerator {
   generate() {
     let centerTile = this.getCenterTile()
     centerTile.type = 4
-    centerTile.rotation = this.game.rnd.between(0, 3)
-    centerTile.shape = 2
-    centerTile.isCenter = true
+    centerTile.rotation = 0
+    centerTile.shape = this.game.rnd.between(1, 2)
     if (!this.buildStepByStep) {
       do {
         this.placeNextTile()

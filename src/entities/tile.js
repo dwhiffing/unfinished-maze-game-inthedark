@@ -32,10 +32,10 @@ export default class Tile {
 
     return paths
   }
-  render(game, {x, y, scale, type=0, rotation=0, shape=0, mapTile=false, isCenter=false}) {
-    const sprite = game.make.sprite(x, y, mapTile ? 'tiles4' : 'tiles3')
+  renderMiniMap(game, {x, y, scale, type=0, rotation=0, shape=0}) {
+    const sprite = game.make.sprite(x, y, 'tiles4')
     const simple = true
-    const frameExtra = simple && mapTile ? null : 6 * shape
+    const frameExtra = simple ? null : 6 * shape
     sprite.anchor.setTo(0.5)
     sprite.scale.setTo(scale)
 
@@ -43,16 +43,47 @@ export default class Tile {
     sprite.x += sprite.width/2
     sprite.y += sprite.height/2
     sprite.angle = rotation * 90
+    return sprite
+  }
+  render(game, {x, y, scale, type=0, rotation=0, shape=0}) {
+    const sprite = game.make.sprite(x, y, 'tiles3')
+    const simple = false
+    const frameExtra = simple ? null : 6 * shape
+    this.sprite = sprite
+    sprite.anchor.setTo(0.5)
+    sprite.scale.setTo(scale)
 
-    if (!mapTile && sprite.frame != 0) {
-      game.physics.p2.enable(sprite)
+    sprite.frame = (type+1) + frameExtra
+    sprite.x += sprite.width/2
+    sprite.y += sprite.height/2
+    sprite.angle = rotation * 90
+    let ppu = game.physics.p2.mpx(1) * -1
+
+    if (sprite.frame != 0) {
+      game.physics.p2.enable(sprite, true)
       sprite.body.clearShapes()
       sprite.body.loadPolygon('physicsData', `${sprite.frame - 1}`)
-      sprite.body.static = true
       sprite.body.angle = rotation * 90
+      sprite.body.static = true
+      this.points = []
+
+      sprite.body.data.shapes.forEach(shape => {
+        let offset = shape.position || 0
+        let angle = shape.angle || 0
+        let verts = []
+        let vrot = p2.vec2.create()
+        shape.vertices.forEach(vert => {
+          let out = []
+          p2.vec2.rotate(vrot, vert, sprite.angle)
+          let x = (vrot[0] + offset[0]) * ppu
+          let y = (vrot[1] + offset[1]) * ppu
+          verts.push(new Phaser.Point(sprite.x + x, sprite.y + y))
+        })
+        this.points = this.points.concat(verts)
+      })
     }
 
-
+    this.body = sprite.body
     return sprite
   }
 }

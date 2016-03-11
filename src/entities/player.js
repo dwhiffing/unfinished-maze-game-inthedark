@@ -1,6 +1,5 @@
 export default class Player {
   constructor(game) {
-    // game.physics.enable(this.sprite)
     this.game = game
     this.group = game.add.group()
     this.speed = 20
@@ -37,10 +36,10 @@ export default class Player {
     this.sprite.body.velocity.x *= 0.9
     this.sprite.body.velocity.y *= 0.9
     if (this.game.camera.position.x !== this.lastX) {
-      this.game.rockTexture.tilePosition.x -= (this.sprite.body.velocity.x) / 100
+      this.game.rockTexture.tilePosition.x -= (this.sprite.body.velocity.x) / 54
     }
     if (this.game.camera.position.y !== this.lastY) {
-      this.game.rockTexture.tilePosition.y -= (this.sprite.body.velocity.y) / 100
+      this.game.rockTexture.tilePosition.y -= (this.sprite.body.velocity.y) / 54
     }
 
     this.lastX = this.game.camera.position.x
@@ -50,7 +49,5 @@ export default class Player {
   move(x, y) {
     this.sprite.body.velocity.x += x * this.speed
     this.sprite.body.velocity.y += y * this.speed
-
-
   }
 }

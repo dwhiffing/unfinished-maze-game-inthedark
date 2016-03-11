@@ -12,10 +12,12 @@ export default {
     }
     return _directionNumToWord(path)
   },
-  getPositionOnCamera(game, target) {
+  getPositionOnCamera(game, target, offset= true) {
+    let offsetX = offset ? 400 : 0
+    let offsetY = offset ? 225 : 0
     return {
-      x: (target.x - game.camera.position.x)+400,
-      y: (target.y - game.camera.position.y)+225
+      x: (target.x - game.camera.position.x) + offsetX,
+      y: (target.y - game.camera.position.y) + offsetY
     }
   },
   _directionNumToWord(path) {

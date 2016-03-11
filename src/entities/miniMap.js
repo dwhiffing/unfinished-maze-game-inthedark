@@ -18,7 +18,7 @@ export default class MiniMap {
   drawMap() {
     // this.group.destroyAll()
     this.map.data.forEach(tile => {
-      let sprite = tile.render(this.game, {
+      let sprite = tile.renderMiniMap(this.game, {
         ...tile,
         x: tile.x * this.buffer,
         y: tile.y * this.buffer,

@@ -1,7 +1,7 @@
 import utils from '../utils'
 
 export default class LightManager {
-  constructor(game, lightRadius=200) {
+  constructor(game, lightRadius=500) {
     this.game = game
     this.lightRadius = lightRadius
 
@@ -14,7 +14,7 @@ export default class LightManager {
 
     this.rayBitmap = this.game.add.bitmapData(this.game.width, this.game.height)
     this.rayBitmapImage = this.game.add.image(0, 0, this.rayBitmap)
-    this.rayBitmapImage.visible = false
+    // this.rayBitmapImage.visible = false
     this.rayBitmapImage.fixedToCamera = true
 
     this.walls = this.game.add.group()
@@ -39,31 +39,50 @@ export default class LightManager {
       this.target.y,
     ]
 
+    const centerTile = this.game.map.map.getCenterTile()
+    let things = centerTile.points.map(point => {
+      return utils.getPositionOnCamera(this.game, point)
+    })
+    let rect = new Phaser.Rectangle(0,0,this.game.width, this.game.height)
+    things = things.filter(thing => {
+      return rect.contains(thing.x, thing.y)
+    })
+    //  things.forEach(point=>console.log(point))
+    // console.log(this.game.width, this.game.height)
     const corners = this.getCorners()
-    const points = this.rayCast(corners)
+    const points = this.rayCast(things)
+
 
     this.drawAura(points)
-    this.drawFlashlight(mouseX, mouseY, points)
+    // this.drawFlashlight(mouseX, mouseY, points)
 
     this.shadowTexture.dirty = true
+    const pointsWithStageCorners = this.stageCorners.map(corner => {
+      let ray = new Phaser.Line(this.target.x, this.target.y, corner.x, corner.y)
+      let intersect = this.getWallIntersection(ray)
+      return intersect ? null : corner
+    }).filter(r => r !== null)
 
     if (this.rayBitmapImage.visible) {
-      this.drawRayCast(points)
+      this.drawRayCast(things.concat(pointsWithStageCorners))
       this.rayBitmap.dirty = true
     }
   }
   drawRayCast(points) {
-    this.rayBitmap.context.clearRect(0, 0, this.game.width, this.game.height)
-    this.rayBitmap.context.beginPath()
-    this.rayBitmap.context.strokeStyle = 'rgba(255, 255, 255, 0.3)'
-    this.rayBitmap.context.fillStyle = 'rgba(255, 255, 255, 0.3)'
-    this.rayBitmap.context.moveTo(points[0].x, points[0].y)
-    for(var k = 0; k < points.length; k++) {
-      this.rayBitmap.context.moveTo(this.target.x, this.target.y)
-      this.rayBitmap.context.lineTo(points[k].x, points[k].y)
-      this.rayBitmap.context.fillRect(points[k].x-2, points[k].y-2, 4, 4)
-    }
-    this.rayBitmap.context.stroke()
+    const ctx = this.rayBitmap.context
+    ctx.clearRect(0, 0, this.game.width, this.game.height)
+    ctx.beginPath()
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+    points.forEach((point, index) => {
+      if (index === 1) {
+        ctx.moveTo(point.x, point.y)
+      }
+      ctx.moveTo(this.target.x, this.target.y)
+      ctx.lineTo(point.x, point.y)
+      ctx.fillRect(point.x-2, point.y-2, 4, 4)
+    })
+    ctx.stroke()
   }
   drawAura(points) {
     const ctx = this.shadowTexture.context
@@ -83,7 +102,6 @@ export default class LightManager {
     }).filter(r => r !== null)
 
     points = this.sortPoints(points.concat(pointsWithStageCorners))
-
     ctx.beginPath()
     ctx.fillStyle = gradient
     ctx.moveTo(points[0].x, points[0].y)
@@ -160,7 +178,7 @@ export default class LightManager {
     })
     return corners
   }
-  rayCast(input) {
+  rayCast(input=[]) {
     let t = this.target
     let w = this.game.width
     let h = this.game.height
